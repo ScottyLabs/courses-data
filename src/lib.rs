@@ -96,14 +96,19 @@ impl Index {
         // The query parser can interpret human queries.
         // Here, if the user does not specify which
         // field they want to search, we specify all by default.
-        let query_parser = QueryParser::for_index(
+        let mut query_parser = QueryParser::for_index(
             &self.index,
             vec![self.number_field, self.name_field, self.descr_field],
         );
 
+        // weight course name and number higher
+        // without this, the query "15-122" may not have 15122 as the first output :p
+        query_parser.set_field_boost(self.name_field, 2.0);
+        query_parser.set_field_boost(self.number_field, 3.0);
+
         // `QueryParser` may fail if the query is not in the right
         // format. For user facing applications, this can be a problem.
-        // A ticket has been opened regarding this problem.
+        // TODO: may want to make this function return a Result, dependant on this line.
         let query = query_parser.parse_query(query).unwrap();
 
         // We can now perform our query.
