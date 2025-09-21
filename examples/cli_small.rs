@@ -1,6 +1,6 @@
 //! Showcases us using the library to build a tantivy representation and return the output of search.
 //!
-//! Try with `cargo run --example initial -- "15-122" "15" "Statistical Inference" "class"`
+//! Try with `cargo run --example cli_small -- "15-122" "15" "Statistical Inference" "class"`
 
 /// Some dummy data emulating the sections of the database we're allowed to make public and search for.
 const DATA: &str = "15-122\tPrinciples of Imperative Computation\tFor students with a basic understanding of programming (variables, expressions, loops, arrays, functions). Teaches imperative programming and methods for ensuring the correctness of programs. Students will learn the process and concepts needed to go from high-level descriptions of algorithms to correct imperative implementations, with specific application to basic data structures and algorithms. Much of the course will be conducted in a subset of C amenable to verification, with a transition to full C near the end. This course prepares students for 15-213 and 15-210. NOTE: students must achieve a C or better in order to use this course to satisfy the pre-requisite for any subsequent Computer Science course.

@@ -6,3 +6,6 @@ edition = "2024"
 [dependencies]
 bincode = "2.0.1"
 tantivy = "0.25.0"
+
+[dev-dependencies]
+json = "0.12.4"

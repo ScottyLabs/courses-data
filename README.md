@@ -10,6 +10,6 @@ Here's a general idea of what we're trying to work toward:
 
 - let tantivy run the search clientside
 
-To get an idea of the interface, feel free to browse the docs (`cargo doc --no-deps --open`). Also, see the example at [.examples/cli.rs](./examples/cli.rs).
+To get an idea of the interface, feel free to browse the docs (`cargo doc --no-deps --open`). Also, see the examples in [./examples](./examples).
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for developer standards.
