@@ -31,7 +31,7 @@ fn main() {
             }
         }
 
-        indexbuilder.add_course(id, number, name, descr);
+        indexbuilder.add_course(id.to_string(), number, name, descr);
     }
 
     let index = indexbuilder.build();

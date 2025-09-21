@@ -6,7 +6,7 @@ use tantivy::query::QueryParser;
 use tantivy::schema::*;
 use tantivy::{IndexWriter, ReloadPolicy};
 
-pub type IdType = usize;
+pub type IdType = String;
 
 /// Build an index iteratively.
 pub struct IndexBuilder {
@@ -46,7 +46,7 @@ impl IndexBuilder {
 
     pub fn add_course(&mut self, id: IdType, number: &str, name: &str, descr: &str) {
         let mut doc = TantivyDocument::default();
-        doc.add_u64(self.id_field, id as u64);
+        doc.add_text(self.id_field, id);
         doc.add_text(self.number_field, number);
         doc.add_text(self.name_field, name);
         doc.add_text(self.descr_field, descr);
@@ -120,8 +120,8 @@ impl Index {
             .map(|(_score, doc_address)| {
                 let retrieved_doc: TantivyDocument = searcher.doc(doc_address).unwrap();
                 match OwnedValue::from(retrieved_doc.get_first(self.id_field).unwrap()) {
-                    OwnedValue::U64(id) => id as IdType,
-                    _ => unreachable!("We hardcoded id as a u64 above."),
+                    OwnedValue::Str(id) => id,
+                    _ => unreachable!("We hardcoded id as a string above."),
                 }
             })
             .collect()
