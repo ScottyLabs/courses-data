@@ -2,10 +2,18 @@
 //!
 //! Try with `cargo run --release path/to/db/json`, then interactively submit queries.
 //!
+//! Try running it again to load it from cache!
+//!
 //! The database json file is named `courses.json` in https://scottylabs.slack.com/files/U08M22PL413/F09G6PQPXAP/course-search-sandbox.zip.
 
-use bm25::{SearchEngineBuilder, Tokenizer};
-use std::{fs, io::Write, time::Instant};
+use bm25::{SearchEngine, SearchEngineBuilder, Tokenizer};
+use serde::{Deserialize, Serialize};
+use std::{
+    fs::{self, File},
+    io::{BufReader, Write},
+    path::Path,
+    time::Instant,
+};
 
 /// n-wide sliding windows over a str.
 ///
@@ -25,7 +33,7 @@ fn char_windows<'a>(src: &'a str, win_size: usize) -> impl Iterator<Item = &'a s
 /// Change how wide the n-gram is with `N` in the source code.
 ///
 /// This could be a const generic but I don't want to use too much magic.
-#[derive(Default)]
+#[derive(Default, Serialize, Deserialize)]
 struct NGramTokenizer;
 
 impl Tokenizer for NGramTokenizer {
@@ -33,7 +41,7 @@ impl Tokenizer for NGramTokenizer {
         const N: usize = 3;
 
         char_windows(input_text, N)
-            .map(|window| window.to_string())
+            .map(|window| window.to_lowercase())
             .collect()
     }
 }
@@ -52,20 +60,47 @@ fn main() {
     println!("db json has {} course entries", db.len());
     println!("starting index-building step");
 
-    let search_engine = SearchEngineBuilder::<u32, u32, NGramTokenizer>::with_tokenizer_and_corpus(
-        NGramTokenizer {},
-        db.entries().map(|entry| {
-            format!(
-                "{} | {} | {}",
-                entry.1["courseID"].to_string(),
-                entry.1["name"].to_string(),
-                entry.1["desc"].to_string()
-            )
-        }),
-    )
-    .build();
+    let time_before_index = Instant::now();
 
-    println!("done building index. moving to query step.\n");
+    let search_engine: SearchEngine<u32, u32, NGramTokenizer>;
+    if Path::new("target/data").exists() {
+        search_engine = bincode::serde::decode_from_reader(
+            BufReader::new(File::open("target/data").unwrap()),
+            bincode::config::standard(),
+        )
+        .unwrap();
+
+        println!(
+            "deserialized cached index from file system in {} seconds:",
+            time_before_index.elapsed().as_secs_f64()
+        );
+    } else {
+        search_engine = SearchEngineBuilder::<u32, u32, NGramTokenizer>::with_tokenizer_and_corpus(
+            NGramTokenizer {},
+            db.entries().map(|entry| {
+                format!(
+                    "{} | {} | {}",
+                    entry.1["courseID"].to_string(),
+                    entry.1["name"].to_string(),
+                    entry.1["desc"].to_string()
+                )
+            }),
+        )
+        .build();
+
+        println!(
+            "constructed index from scratch in {} seconds:",
+            time_before_index.elapsed().as_secs_f64()
+        );
+
+        let serialized_search_engine =
+            bincode::serde::encode_to_vec(&search_engine, bincode::config::standard()).unwrap();
+
+        File::create("target/data")
+            .unwrap()
+            .write_all(&serialized_search_engine)
+            .unwrap();
+    }
 
     let mut buffer = String::new();
     loop {
