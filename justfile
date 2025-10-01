@@ -9,3 +9,16 @@ doc:
 # compile and open documentation for the library
 doc-open:
     cargo doc --no-deps --open
+
+# build the library to wasm (see note in main.rs for the database arg)
+build-web database:
+    cargo run --release -- {{database}} --only-build
+    # this next step requires wasm-pack from https://drager.github.io/wasm-pack/installer/
+    # at time of writing, it can be installed with `curl https://drager.github.io/wasm-pack/installer/init.sh -sSf | bash` (sh doesn't work)
+    wasm-pack build --out-dir target/wasm --target web --features include-bytes
+
+# serve a web example of the library to localhost. (make sure build-web has been run)
+[working-directory: 'target/wasm']
+serve-example:
+    cp ../../index.html .
+    python -m http.server

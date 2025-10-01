@@ -3,8 +3,16 @@ name = "courses-data"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 bincode = { version = "2.0.1", features = ["serde"] }
 bm25 = { git = "https://github.com/Michael-JB/bm25.git", rev = "e07bdab4863db089076f569daf90c58071a02631", features = ["serde"] }
 json = "0.12.4"
 serde = "1.0.228"
+wasm-bindgen = "0.2.104"
+wasm-bindgen-futures = "0.4.54"
+
+[features]
+include-bytes = []

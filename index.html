@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <body>
+    <input type="text" id="query" />
+    <div id="output"></div>
+    <script type="module">
+      import init, { SearchEngine } from "./courses_data.js";
+      await init();
+
+      const queryInput = document.querySelector("#query");
+
+      queryInput.disabled = true;
+      output.textContent = "Loading...";
+
+      const engine = await new SearchEngine();
+
+      queryInput.disabled = false;
+      output.textContent = "";
+
+      queryInput.addEventListener("input", async (event) => {
+        if (!queryInput.disabled) {
+          document.querySelector("#output").innerHTML = (
+            await engine.search(event.target.value)
+          )
+            .map((item) => `<div>${item}</div><hr>`)
+            .join("");
+        }
+      });
+    </script>
+  </body>
+</html>

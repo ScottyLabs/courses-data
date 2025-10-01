@@ -4,12 +4,8 @@ An experimental, WIP Rust library for more performant processing, search, and re
 
 Here's a general idea of what we're trying to work toward:
 
-- store or migrate CMUCourses data to a [tantivy](https://github.com/quickwit-oss/tantivy) schema
+- WASM clientside search
 
-- send that data to users as a static asset
-
-- let tantivy run the search clientside
-
-To get an idea of the interface, feel free to browse the docs (`cargo doc --no-deps --open`). Also, see the examples in [./examples](./examples).
+To get an idea of the interface, feel free to browse the docs (`cargo doc --no-deps --open`). Also, browse commands you can run with `just` or by opening the [justfile](./justfile).
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for developer standards.
