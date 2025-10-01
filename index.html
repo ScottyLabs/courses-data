@@ -23,9 +23,8 @@
 
       queryInput.addEventListener("input", async (event) => {
         if (!queryInput.disabled) {
-          document.querySelector("#output").innerHTML = (
-            await engine.search(event.target.value)
-          )
+          document.querySelector("#output").innerHTML = engine
+            .search(event.target.value)
             .map((item) => `<div>${item}</div><hr>`)
             .join("");
         }
