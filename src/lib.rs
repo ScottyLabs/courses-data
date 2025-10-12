@@ -69,8 +69,12 @@ impl SearchEngine {
                 NGramTokenizer {},
                 db.entries().map(|entry| {
                     format!(
-                        "{} | {} | {}",
+                        "{} {} {} | {} {} {} | {}",
                         entry.1["courseID"].to_string(),
+                        entry.1["courseID"].to_string(),
+                        entry.1["courseID"].to_string(),
+                        entry.1["name"].to_string(),
+                        entry.1["name"].to_string(),
                         entry.1["name"].to_string(),
                         entry.1["desc"].to_string()
                     )
