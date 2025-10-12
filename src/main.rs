@@ -21,7 +21,9 @@ fn main() {
     }
 
     let search_engine: SearchEngine;
-    if !Path::new("target/data").exists() {
+    if !Path::new("target/data").exists()
+        || std::env::args().skip(1).any(|arg| arg == "--force-rebuild")
+    {
         let path_to_db_json = std::env::args().skip(1).next().unwrap();
         search_engine = courses_data::SearchEngine::new(&path_to_db_json);
 

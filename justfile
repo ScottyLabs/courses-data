@@ -12,7 +12,7 @@ doc-open:
 
 # build the library to wasm (see note in main.rs for the database arg)
 build-web:
-    cargo run --release -- courses.json --only-build
+    cargo run --release -- courses.json --only-build --force-rebuild
     # this next step requires wasm-pack from https://drager.github.io/wasm-pack/installer/
     # at time of writing, it can be installed with `curl https://drager.github.io/wasm-pack/installer/init.sh -sSf | bash` (sh doesn't work)
     wasm-pack build --out-dir target/wasm --target web --features include-bytes
