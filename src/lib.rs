@@ -102,9 +102,16 @@ impl SearchEngine {
     /// See how this gets used in the project justfile.
     pub fn from_include_bytes() -> Promise {
         wasm_bindgen_futures::future_to_promise(async move {
+            let mut output = Vec::new();
+            brotli::BrotliDecompress(
+                &mut include_bytes!("../target/data").as_slice(),
+                &mut output,
+            )
+            .unwrap();
+
             Ok(JsValue::from(Self {
                 bm25_engine: bincode::serde::decode_from_reader(
-                    BufReader::new(&include_bytes!("../target/data")[..]),
+                    BufReader::new(output.as_slice()),
                     bincode::config::standard(),
                 )
                 .unwrap(),

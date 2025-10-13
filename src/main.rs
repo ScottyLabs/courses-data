@@ -30,9 +30,20 @@ fn main() {
         let serialized_search_engine =
             bincode::serde::encode_to_vec(&search_engine, bincode::config::standard()).unwrap();
 
+        println!("compressing");
+        let mut compressed_search_engine = vec![];
+        brotli::BrotliCompress(
+            &mut serialized_search_engine.as_slice(),
+            &mut compressed_search_engine,
+            &brotli::enc::BrotliEncoderParams::default(),
+        )
+        .unwrap();
+
+        println!("finish comp");
+
         File::create("target/data")
             .unwrap()
-            .write_all(&serialized_search_engine)
+            .write_all(&compressed_search_engine)
             .unwrap();
     } else {
         let time_before_index = Instant::now();
