@@ -7,9 +7,10 @@
 //! The database json file is named `courses.json` in https://scottylabs.slack.com/files/U08M22PL413/F09G6PQPXAP/course-search-sandbox.zip.
 
 use courses_data::SearchEngine;
+use flate2::{Compression, bufread::ZlibEncoder};
 use std::{
     fs::File,
-    io::{BufReader, Write},
+    io::{BufReader, Read, Write},
     path::Path,
     time::Instant,
 };
@@ -32,11 +33,11 @@ fn main() {
 
         println!("compressing");
         let mut compressed_search_engine = vec![];
-        brotli::BrotliCompress(
-            &mut serialized_search_engine.as_slice(),
-            &mut compressed_search_engine,
-            &brotli::enc::BrotliEncoderParams::default(),
+        ZlibEncoder::new(
+            BufReader::new(serialized_search_engine.as_slice()),
+            Compression::best(),
         )
+        .read_to_end(&mut compressed_search_engine)
         .unwrap();
 
         println!("finish comp");

@@ -1,12 +1,13 @@
 //! Search cmucourses with bm25. WASM-compatible!
 
+use bm25::{SearchEngineBuilder, Tokenizer};
+use flate2::bufread::ZlibDecoder;
+use serde::{Deserialize, Serialize};
+use std::io::Read;
 use std::{
     fs::{self},
     time::Instant,
 };
-
-use bm25::{SearchEngineBuilder, Tokenizer};
-use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
 #[cfg(feature = "include-bytes")]
@@ -103,11 +104,9 @@ impl SearchEngine {
     pub fn from_include_bytes() -> Promise {
         wasm_bindgen_futures::future_to_promise(async move {
             let mut output = Vec::new();
-            brotli::BrotliDecompress(
-                &mut include_bytes!("../target/data").as_slice(),
-                &mut output,
-            )
-            .unwrap();
+            ZlibDecoder::new(include_bytes!("../target/data").as_slice())
+                .read_to_end(&mut output)
+                .unwrap();
 
             Ok(JsValue::from(Self {
                 bm25_engine: bincode::serde::decode_from_reader(
