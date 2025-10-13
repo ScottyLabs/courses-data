@@ -7,13 +7,17 @@
 //! The database json file is named `courses.json` in https://scottylabs.slack.com/files/U08M22PL413/F09G6PQPXAP/course-search-sandbox.zip.
 
 use courses_data::SearchEngine;
-use flate2::{Compression, bufread::ZlibEncoder};
 use std::{
     fs::File,
-    io::{BufReader, Read, Write},
+    io::{BufReader, Write},
     path::Path,
     time::Instant,
 };
+
+#[cfg(feature = "zlib")]
+use flate2::{Compression, bufread::ZlibEncoder};
+#[cfg(feature = "zlib")]
+use std::io::Read;
 
 fn main() {
     let mut interactive = true;
@@ -32,7 +36,12 @@ fn main() {
             bincode::serde::encode_to_vec(&search_engine, bincode::config::standard()).unwrap();
 
         println!("compressing");
+
+        // zlib specific transformations
+        #[cfg(feature = "zlib")]
         let mut compressed_search_engine = vec![];
+
+        #[cfg(feature = "zlib")]
         ZlibEncoder::new(
             BufReader::new(serialized_search_engine.as_slice()),
             Compression::best(),
@@ -40,11 +49,29 @@ fn main() {
         .read_to_end(&mut compressed_search_engine)
         .unwrap();
 
+        #[cfg(feature = "zlib")]
+        let serialized_search_engine = compressed_search_engine;
+
+        // brotli specific transformations
+        #[cfg(feature = "brotli")]
+        let mut compressed_search_engine = vec![];
+
+        #[cfg(feature = "brotli")]
+        brotli::BrotliCompress(
+            &mut serialized_search_engine.as_slice(),
+            &mut compressed_search_engine,
+            &brotli::enc::BrotliEncoderParams::default(),
+        )
+        .unwrap();
+
+        #[cfg(feature = "brotli")]
+        let serialized_search_engine = compressed_search_engine;
+
         println!("finish comp");
 
         File::create("target/data")
             .unwrap()
-            .write_all(&compressed_search_engine)
+            .write_all(&serialized_search_engine)
             .unwrap();
     } else {
         let time_before_index = Instant::now();

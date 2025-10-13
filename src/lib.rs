@@ -1,9 +1,7 @@
 //! Search cmucourses with bm25. WASM-compatible!
 
 use bm25::{SearchEngineBuilder, Tokenizer};
-use flate2::bufread::ZlibDecoder;
 use serde::{Deserialize, Serialize};
-use std::io::Read;
 use std::{
     fs::{self},
     time::Instant,
@@ -14,6 +12,11 @@ use wasm_bindgen::prelude::*;
 use std::io::BufReader;
 #[cfg(feature = "include-bytes")]
 use wasm_bindgen_futures::js_sys::Promise;
+
+#[cfg(feature = "zlib")]
+use flate2::bufread::ZlibDecoder;
+#[cfg(feature = "zlib")]
+use std::io::Read;
 
 /// Create n-wide sliding windows over a str.
 ///
@@ -103,14 +106,34 @@ impl SearchEngine {
     /// See how this gets used in the project justfile.
     pub fn from_include_bytes() -> Promise {
         wasm_bindgen_futures::future_to_promise(async move {
-            let mut output = Vec::new();
-            ZlibDecoder::new(include_bytes!("../target/data").as_slice())
-                .read_to_end(&mut output)
+            let data = include_bytes!("../target/data");
+
+            // zlib specific transformation
+            #[cfg(feature = "zlib")]
+            let mut zlib_output = Vec::new();
+
+            #[cfg(feature = "zlib")]
+            ZlibDecoder::new(data.as_slice())
+                .read_to_end(&mut zlib_output)
                 .unwrap();
 
+            #[cfg(feature = "zlib")]
+            let data = zlib_output;
+
+            // brotli specific transformation
+            #[cfg(feature = "brotli")]
+            let mut brotli_output = Vec::new();
+
+            #[cfg(feature = "brotli")]
+            brotli::BrotliDecompress(&mut data.as_slice(), &mut brotli_output).unwrap();
+
+            #[cfg(feature = "brotli")]
+            let data = brotli_output;
+
+            // process data and send engine to js
             Ok(JsValue::from(Self {
                 bm25_engine: bincode::serde::decode_from_reader(
-                    BufReader::new(output.as_slice()),
+                    BufReader::new(data.as_slice()),
                     bincode::config::standard(),
                 )
                 .unwrap(),
