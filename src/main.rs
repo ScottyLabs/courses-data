@@ -14,6 +14,11 @@ use std::{
     time::Instant,
 };
 
+#[cfg(feature = "zlib")]
+use flate2::{Compression, bufread::ZlibEncoder};
+#[cfg(feature = "zlib")]
+use std::io::Read;
+
 fn main() {
     let mut interactive = true;
     if std::env::args().skip(1).any(|arg| arg == "--only-build") {
@@ -29,6 +34,40 @@ fn main() {
 
         let serialized_search_engine =
             bincode::serde::encode_to_vec(&search_engine, bincode::config::standard()).unwrap();
+
+        println!("compressing");
+
+        // zlib specific transformations
+        #[cfg(feature = "zlib")]
+        let mut compressed_search_engine = vec![];
+
+        #[cfg(feature = "zlib")]
+        ZlibEncoder::new(
+            BufReader::new(serialized_search_engine.as_slice()),
+            Compression::best(),
+        )
+        .read_to_end(&mut compressed_search_engine)
+        .unwrap();
+
+        #[cfg(feature = "zlib")]
+        let serialized_search_engine = compressed_search_engine;
+
+        // brotli specific transformations
+        #[cfg(feature = "brotli")]
+        let mut compressed_search_engine = vec![];
+
+        #[cfg(feature = "brotli")]
+        brotli::BrotliCompress(
+            &mut serialized_search_engine.as_slice(),
+            &mut compressed_search_engine,
+            &brotli::enc::BrotliEncoderParams::default(),
+        )
+        .unwrap();
+
+        #[cfg(feature = "brotli")]
+        let serialized_search_engine = compressed_search_engine;
+
+        println!("finish comp");
 
         File::create("target/data")
             .unwrap()
