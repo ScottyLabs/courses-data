@@ -131,25 +131,21 @@ impl SearchEngine {
 
             // zlib specific transformation
             #[cfg(feature = "zlib")]
-            let mut zlib_output = Vec::new();
-
-            #[cfg(feature = "zlib")]
-            ZlibDecoder::new(data.as_slice())
-                .read_to_end(&mut zlib_output)
-                .unwrap();
-
-            #[cfg(feature = "zlib")]
-            let data = zlib_output;
+            let data = {
+                let mut zlib_output = Vec::new();
+                ZlibDecoder::new(data.as_slice())
+                    .read_to_end(&mut zlib_output)
+                    .unwrap();
+                zlib_output
+            };
 
             // brotli specific transformation
             #[cfg(feature = "brotli")]
-            let mut brotli_output = Vec::new();
-
-            #[cfg(feature = "brotli")]
-            brotli::BrotliDecompress(&mut data.as_slice(), &mut brotli_output).unwrap();
-
-            #[cfg(feature = "brotli")]
-            let data = brotli_output;
+            let data = {
+                let mut brotli_output = Vec::new();
+                brotli::BrotliDecompress(&mut data.as_slice(), &mut brotli_output).unwrap();
+                brotli_output
+            };
 
             debug!(
                 "search binary decompression took {}s",
