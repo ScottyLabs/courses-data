@@ -43,33 +43,33 @@ fn main() {
 
         // zlib specific transformations
         #[cfg(feature = "zlib")]
-        let mut compressed_search_engine = vec![];
+        let serialized_search_engine = {
+            let mut compressed_search_engine = vec![];
 
-        #[cfg(feature = "zlib")]
-        ZlibEncoder::new(
-            BufReader::new(serialized_search_engine.as_slice()),
-            Compression::best(),
-        )
-        .read_to_end(&mut compressed_search_engine)
-        .unwrap();
+            ZlibEncoder::new(
+                BufReader::new(serialized_search_engine.as_slice()),
+                Compression::best(),
+            )
+            .read_to_end(&mut compressed_search_engine)
+            .unwrap();
 
-        #[cfg(feature = "zlib")]
-        let serialized_search_engine = compressed_search_engine;
+            compressed_search_engine
+        };
 
         // brotli specific transformations
         #[cfg(feature = "brotli")]
-        let mut compressed_search_engine = vec![];
+        let serialized_search_engine = {
+            let mut compressed_search_engine = vec![];
 
-        #[cfg(feature = "brotli")]
-        brotli::BrotliCompress(
-            &mut serialized_search_engine.as_slice(),
-            &mut compressed_search_engine,
-            &brotli::enc::BrotliEncoderParams::default(),
-        )
-        .unwrap();
+            brotli::BrotliCompress(
+                &mut serialized_search_engine.as_slice(),
+                &mut compressed_search_engine,
+                &brotli::enc::BrotliEncoderParams::default(),
+            )
+            .unwrap();
 
-        #[cfg(feature = "brotli")]
-        let serialized_search_engine = compressed_search_engine;
+            compressed_search_engine
+        };
 
         debug!(
             "finished compressing in {} seconds:",
