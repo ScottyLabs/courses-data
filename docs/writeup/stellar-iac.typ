@@ -52,12 +52,12 @@
 
   // Main body.
   set heading(numbering: (..numbers) => if numbers.pos().len() <= 2 {
-    numbers.pos().slice(1).map(str).join(".") + "."
+    numbers.pos().map(str).join(".") + "."
   } else {
-    numbers.pos().slice(1).map(str).join(".")
+    numbers.pos().map(str).join(".")
   })
 
-  show heading.where(level: 2): it => {
+  show heading.where(level: 1): it => {
     {
       set text(size: font-size)
       set heading(numbering: "1.1.1")
@@ -67,7 +67,7 @@
     a
     v(-0.45 * measure(2 * a).width)
   }
-  show heading.where(level: 3): it => {
+  show heading.where(level: 2): it => {
     {
       set text(size: font-size, weight: "regular", style: "italic")
       it
@@ -76,7 +76,7 @@
     a
     v(-0.45 * measure(2 * a).width)
   }
-  show heading.where(level: 4): it => {
+  show heading.where(level: 3): it => {
     {
       set text(size: font-size, weight: "regular", style: "italic")
       it

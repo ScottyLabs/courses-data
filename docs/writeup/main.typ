@@ -15,7 +15,7 @@
 #let MB = zi.declare("MB")
 #let s = zi.declare("s")
 
-== Introduction
+= Introduction
 
 Scottylabs is a student-run software development organization at Carnegie Mellon. One of our projects is CMUCourses, an online course catalog that tries to provide a good course search experience as one of its keystone features. This project, `courses-data`, was started the fall 2025 semester to look into improving search. In particular, as defined in the project description slidedeck: // https://docs.google.com/presentation/d/1T6jBIC6lUMhOKR6CuuOfstqgiSb0pKyK0sp4sdvn7ks/edit?slide=id.g348e8675946_0_14#slide=id.g348e8675946_0_14
 
@@ -26,17 +26,17 @@ The scope of this article and the current work is to make search faster while ad
 
 // TODO: should define what this is. not just search speed but going to different "pages" of the search ig
 
-== Motivating an alternative implementation
+= Motivating an alternative implementation
 
 We first describe some features that we'd like to add to the search. Then, we describe at a high level how the search is implemented before our experiments. This will imply an alternative implementation that we will investigate in this article.
 
-=== Additional Features
+== Additional Features
 
 As a quality-of-life feature, our team wanted to add full-text search. Previously, the search only queried the course names and numbers, and adding the ability to search the course description could be helpful.
 
 Also, we want fuzzy search because the current implementation isn't typo-tolerant.
 
-=== Review of incumbent implementation
+== Review of incumbent implementation
 
 The incumbent implementation architecture is common among web applications, involving repeatedly sending requests to the server and getting responses. Naming these processes pings and pongs, we have:
 
@@ -49,7 +49,7 @@ The incumbent implementation architecture is common among web applications, invo
 
 It should also be noted that the frontend (queried in steps 1 and 2) is cached onto the user's device by standard browser technology, so a ping-pong when visiting the site actually happens relatively infrequently. However, triggering a search (subsequent steps) must always trigger a ping-pong. This is a common quality of web applications: on top of the time it takes for the server to actually compute the result of a query, user actions also have to wait for the query to travel across the internet to the server before that computation can run in the first place, before finally getting a response that also needs to travel all the way back. Contrast this with a fully client-side application like a music player or a text editor. While they might still need to wait for IO, reads and writes from the physical disk connected to the computer are much faster than responses from and queries to a disk located somewhere else.
 
-=== Key idea
+== Key idea
 
 This naturally leads to the thought: well, why don't we send the data to the client and have them do that search locally? This will make the initial step take longer, because we will have to send whatever data is needed to run searches. However, we entirely remove the need to make network requests when we search!
 
