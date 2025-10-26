@@ -1,10 +1,8 @@
 #import "./stellar-iac.typ": project
 
 #show: project.with(
-  // paper-code: "IAC-25-A1.2.3",
   title: [courses-data: An Experiment in Client-Side Search Through a Medium-Sized Corpus],
-  authors: ("courses-data team", "sdf"),
-  header: [#lorem(20)],
+  authors: ("courses-data team",),
   abstract: [This is left to-do. #lorem(120)],
 )
 
