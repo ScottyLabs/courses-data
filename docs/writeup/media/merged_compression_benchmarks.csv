@@ -1,0 +1,5 @@
+compression,file size,receive,decompress,deserialize,total (cache hit),total (cache miss)
+none,79.62,20.163,0,0.752,0.752,20.915
+zlib,28.27,7.087,1.05,0.697,1.748,8.835
+brotli,18.74,4.36,1.83,0.721,2.551,6.911
+brotli*,18.74,4.36,0.349,0.113,0.462,4.822
