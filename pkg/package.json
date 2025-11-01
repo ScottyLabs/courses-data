@@ -1,0 +1,15 @@
+{
+  "name": "courses-data",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "courses_data_bg.wasm",
+    "courses_data.js",
+    "courses_data_bg.js"
+  ],
+  "main": "courses_data.js",
+  "sideEffects": [
+    "./courses_data.js",
+    "./snippets/*"
+  ]
+}
