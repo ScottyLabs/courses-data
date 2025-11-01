@@ -1,24 +1,13 @@
 //! Search cmucourses with a cli, with the bm25 crate.
 //!
-//! Try with `cargo run --release path/to/db/json`, then interactively submit queries.
+//! Try with `cargo run --features zlib --release path/to/db/json`, then interactively submit queries.
 //!
 //! Try running it again to load it from cache!
 //!
 //! The database json file is named `courses.json` in https://scottylabs.slack.com/files/U08M22PL413/F09G6PQPXAP/course-search-sandbox.zip.
 
 use courses_data::SearchEngine;
-use log::{debug, trace};
-use std::{
-    fs::File,
-    io::{BufReader, Write},
-    path::Path,
-    time::Instant,
-};
-
-#[cfg(feature = "zlib")]
-use flate2::{Compression, bufread::ZlibEncoder};
-#[cfg(feature = "zlib")]
-use std::io::Read;
+use std::{fs::File, io::Write, path::Path, time::Instant};
 
 fn main() {
     courses_data::init_logger();
@@ -29,70 +18,19 @@ fn main() {
     }
 
     let search_engine: SearchEngine;
-    if !Path::new("target/data").exists()
-        || std::env::args().skip(1).any(|arg| arg == "--force-rebuild")
+    if std::env::args().skip(1).any(|arg| arg == "--force-rebuild")
+        || !Path::new("target/data").exists()
     {
         let path_to_db_json = std::env::args().skip(1).next().unwrap();
-        search_engine = courses_data::SearchEngine::new(&path_to_db_json);
 
-        let serialized_search_engine =
-            bincode::serde::encode_to_vec(&search_engine, bincode::config::standard()).unwrap();
-
-        trace!("compressing");
-        let time_before_compress = Instant::now();
-
-        // zlib specific transformations
-        #[cfg(feature = "zlib")]
-        let serialized_search_engine = {
-            let mut compressed_search_engine = vec![];
-
-            ZlibEncoder::new(
-                BufReader::new(serialized_search_engine.as_slice()),
-                Compression::best(),
-            )
-            .read_to_end(&mut compressed_search_engine)
-            .unwrap();
-
-            compressed_search_engine
-        };
-
-        // brotli specific transformations
-        #[cfg(feature = "brotli")]
-        let serialized_search_engine = {
-            let mut compressed_search_engine = vec![];
-
-            brotli::BrotliCompress(
-                &mut serialized_search_engine.as_slice(),
-                &mut compressed_search_engine,
-                &brotli::enc::BrotliEncoderParams::default(),
-            )
-            .unwrap();
-
-            compressed_search_engine
-        };
-
-        debug!(
-            "finished compressing in {} seconds:",
-            time_before_compress.elapsed().as_secs_f64()
-        );
+        search_engine = courses_data::SearchEngine::from_json_path(&path_to_db_json);
 
         File::create("target/data")
             .unwrap()
-            .write_all(&serialized_search_engine)
+            .write_all(&search_engine.to_bytes())
             .unwrap();
     } else {
-        let time_before_index = Instant::now();
-
-        search_engine = bincode::serde::decode_from_reader(
-            BufReader::new(File::open("target/data").unwrap()),
-            bincode::config::standard(),
-        )
-        .unwrap();
-
-        debug!(
-            "deserialized cached index from file system in {} seconds:",
-            time_before_index.elapsed().as_secs_f64()
-        );
+        search_engine = SearchEngine::from_bytes(std::fs::read("target/data").unwrap());
     }
 
     if !interactive {

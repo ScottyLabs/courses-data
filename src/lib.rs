@@ -4,20 +4,19 @@ use bm25::{SearchEngineBuilder, Tokenizer};
 use log::{debug, trace};
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::BufReader;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::js_sys::Promise;
 
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::Instant;
 #[cfg(target_arch = "wasm32")]
 use web_time::Instant;
 
-#[cfg(feature = "include-bytes")]
-use std::io::BufReader;
-#[cfg(feature = "include-bytes")]
-use wasm_bindgen_futures::js_sys::Promise;
-
 #[cfg(feature = "zlib")]
 use flate2::bufread::ZlibDecoder;
+#[cfg(feature = "zlib")]
+use flate2::{Compression, bufread::ZlibEncoder};
 #[cfg(feature = "zlib")]
 use std::io::Read;
 
@@ -63,19 +62,23 @@ pub struct SearchEngine {
 /// The backends for native and wasm code are different.
 pub fn init_logger() {
     #[cfg(not(target_arch = "wasm32"))]
-    {
-        simple_logger::init_with_env().unwrap();
-    }
+    simple_logger::init_with_env().unwrap();
+
     #[cfg(target_arch = "wasm32")]
-    {
-        console_log::init_with_level(log::Level::Trace).unwrap();
-    }
+    console_log::init_with_level(log::Level::Trace).unwrap();
 }
 
 #[wasm_bindgen]
 impl SearchEngine {
-    pub fn new(data_path: &str) -> Self {
-        let db_json_file = fs::read(&data_path).expect(&format!(
+    /// Create a search engine from a json file.
+    ///
+    /// The schema for this json file is "the one that Theo sent. There is no schema.
+    /// You must use specifically the file Theo sent."
+    ///
+    /// This is a temporary function while we wait on getting the schema
+    /// for the production database.
+    pub fn from_json_path(data_path: &str) -> Self {
+        let db_json_file = fs::read(data_path).expect(&format!(
             "COULD NOT READ DATABASE JSON FILE {}. error was",
             data_path
         ));
@@ -111,62 +114,105 @@ impl SearchEngine {
         Self { bm25_engine }
     }
 
-    #[cfg(feature = "include-bytes")]
-    #[wasm_bindgen(constructor)]
-    /// Create a search engine from bytes that are added to the (wasm) binary at compile time.
-    ///
-    /// Because that happens at compile time, this causes a compile error if
-    /// the serialized search engine doesn't exist. But the code to create that
-    /// engine would not compile too! To solve this bootstrapping chicken and
-    /// egg problem, we lock this function behind a conditional-compilation feature.
-    ///
-    /// See how this gets used in the project justfile.
-    pub fn from_include_bytes() -> Promise {
-        init_logger();
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let serialized_search_engine =
+            bincode::serde::encode_to_vec(self, bincode::config::standard()).unwrap();
 
-        wasm_bindgen_futures::future_to_promise(async move {
-            let data = include_bytes!("../target/data");
+        trace!("compressing");
+        let time_before_compress = Instant::now();
 
-            let before_decompress = Instant::now();
+        // zlib specific transformations
+        #[cfg(feature = "zlib")]
+        let serialized_search_engine = {
+            let mut compressed_search_engine = vec![];
 
-            // zlib specific transformation
-            #[cfg(feature = "zlib")]
-            let data = {
-                let mut zlib_output = Vec::new();
-                ZlibDecoder::new(data.as_slice())
-                    .read_to_end(&mut zlib_output)
-                    .unwrap();
-                zlib_output
-            };
+            ZlibEncoder::new(
+                BufReader::new(serialized_search_engine.as_slice()),
+                Compression::best(),
+            )
+            .read_to_end(&mut compressed_search_engine)
+            .unwrap();
 
-            // brotli specific transformation
-            #[cfg(feature = "brotli")]
-            let data = {
-                let mut brotli_output = Vec::new();
-                brotli::BrotliDecompress(&mut data.as_slice(), &mut brotli_output).unwrap();
-                brotli_output
-            };
+            compressed_search_engine
+        };
 
-            debug!(
-                "search binary decompression took {}s",
-                before_decompress.elapsed().as_secs_f64()
-            );
+        // brotli specific transformations
+        #[cfg(feature = "brotli")]
+        let serialized_search_engine = {
+            let mut compressed_search_engine = vec![];
 
-            let before_deser = Instant::now();
-
-            let bm25_engine = bincode::serde::decode_from_reader(
-                BufReader::new(data.as_slice()),
-                bincode::config::standard(),
+            brotli::BrotliCompress(
+                &mut serialized_search_engine.as_slice(),
+                &mut compressed_search_engine,
+                &brotli::enc::BrotliEncoderParams::default(),
             )
             .unwrap();
 
-            debug!(
-                "search binary deserialization took {}s",
-                before_deser.elapsed().as_secs_f64()
-            );
+            compressed_search_engine
+        };
 
-            // process data and send engine to js
-            Ok(JsValue::from(Self { bm25_engine }))
+        debug!(
+            "finished compressing in {} seconds:",
+            time_before_compress.elapsed().as_secs_f64()
+        );
+
+        serialized_search_engine
+    }
+
+    pub fn from_bytes(serialized_engine: Vec<u8>) -> Self {
+        let before_decompress = Instant::now();
+
+        // brotli specific transformation
+        #[cfg(feature = "brotli")]
+        let serialized_engine = {
+            let mut brotli_output = Vec::new();
+            brotli::BrotliDecompress(&mut serialized_engine.as_slice(), &mut brotli_output)
+                .unwrap();
+            brotli_output
+        };
+
+        // zlib specific transformation
+        #[cfg(feature = "zlib")]
+        let serialized_engine = {
+            let mut zlib_output = Vec::new();
+            ZlibDecoder::new(serialized_engine.as_slice())
+                .read_to_end(&mut zlib_output)
+                .unwrap();
+            zlib_output
+        };
+
+        debug!(
+            "search binary decompression took {}s",
+            before_decompress.elapsed().as_secs_f64()
+        );
+
+        let before_deser = Instant::now();
+
+        let bm25_engine = bincode::serde::decode_from_reader(
+            BufReader::new(serialized_engine.as_slice()),
+            bincode::config::standard(),
+        )
+        .unwrap();
+
+        debug!(
+            "search binary deserialization took {}s",
+            before_deser.elapsed().as_secs_f64()
+        );
+
+        // process data and send engine to js
+
+        Self { bm25_engine }
+    }
+
+    #[wasm_bindgen(js_name = from_Uint8Array)]
+    /// Create a search engine from bytes.
+    ///
+    /// One might get these bytes from the result of a Fetch API call.
+    pub fn from_js_bytes(serialized_engine: Vec<u8>) -> Promise {
+        init_logger();
+
+        wasm_bindgen_futures::future_to_promise(async move {
+            Ok(JsValue::from(Self::from_bytes(serialized_engine)))
         })
     }
 

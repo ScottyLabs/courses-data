@@ -16,7 +16,10 @@
       queryInput.disabled = true;
       output.textContent = "Loading...";
 
-      const engine = await new SearchEngine();
+      let serialized_engine = await fetch("serialized_engine");
+      serialized_engine = await serialized_engine.bytes();
+
+      const engine = await SearchEngine.from_Uint8Array(serialized_engine);
 
       queryInput.disabled = false;
       output.textContent = "";

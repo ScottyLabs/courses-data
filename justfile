@@ -20,5 +20,6 @@ build-web:
 # serve a web example of the library to localhost. (make sure build-web has been run)
 [working-directory: 'target/wasm']
 serve-example:
+    cp ../../target/data serialized_engine
     cp ../../index.html .
     python3 -m http.server 8001
