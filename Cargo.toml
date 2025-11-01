@@ -25,6 +25,5 @@ simple_logger = "5.0.0"
 console_log = "1.0.0"
 
 [features]
-include-bytes = []
 zlib = ["dep:flate2"]
 brotli = ["dep:brotli"]
