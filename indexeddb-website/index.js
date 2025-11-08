@@ -53,33 +53,38 @@ const deleteFileFromIndexedDb = (storeKey) => {
 const handleSubmit = async (ev) => {
 	ev.preventDefault();
 	try {
-		const file = await getFileFromInput();
+		// const file = await getFileFromInput();
 		let transaction = db.transaction(storeName, 'readwrite');
 		transaction.oncomplete = (event) => {
 			console.log("looking at the data!");
 		}
-		transaction.onerror = (event) => {
-			console.log(event);
-		}
+		// transaction.onerror = (event) => {
+		// 	console.log(event);
+		// }
 		var store = transaction.objectStore(storeName);
-		var addRequest = store.add(file);
-		addRequest.onsuccess = (event) => {
-			console.log("file successfully added!");
-		}
+		// var addRequest = store.add(file);
+		// addRequest.onsuccess = (event) => {
+		// 	console.log("file successfully added!");
+		// }
 
 		var readRequest = await store.get("foo.txt");
+		console.log(readRequest);
 
 		readRequest.onerror = (event) => {
 			console.log(event);
 		};
 		readRequest.onsuccess = async (event) => {
 			// Do something with the request.result!
-			var fileBlob = new Blob([readRequest.result], { type: "plain/txt" });
+			var fileBlob = new Blob([readRequest.result.data], { type: "text/plain" });
 			console.log(fileBlob);
 			var blobText = await fileBlob.text();
-			const reader = new FileReader();
-			reader.readAsText(fileBlob);
-			console.log(reader.result);
+			console.log(blobText);
+			// const reader = new FileReader();
+			// reader.addEventListener("loadend", function () {
+			// 	// The result property contains the content of the Blob as a text string
+			// 	const textContent = reader.result;
+			// 	console.log(textContent);
+			// });
 		};
 
 
