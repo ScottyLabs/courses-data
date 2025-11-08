@@ -31,49 +31,19 @@ const clearEntriesFromIndexedDb = () => {
 	const store = db.transaction(storeName, 'readwrite').objectStore(storeName);
 
 	store.clear();
-	clearGalleryImages();
 
 	store.transaction.oncomplete = () => {
 		renderStorageQuotaInfo();
 	};
 };
 
-const deleteImageFromIndexedDb = (storeKey) => {
+const deleteFileFromIndexedDb = (storeKey) => {
 	const store = db.transaction(storeName, 'readwrite').objectStore(storeName);
 	store.delete(storeKey);
 	store.transaction.oncomplete = async () => {
-		clearGalleryImages();
-		renderAvailableImagesFromDb();
 		await renderStorageQuotaInfo();
 	};
 };
-
-const renderAvailableImagesFromDb = () => {
-	db.transaction(storeName, 'readonly').objectStore(storeName).openCursor().onsuccess = (event) => {
-		const cursor = event.target.result;
-		if (cursor) {
-			renderGalleryColumn(cursor);
-			cursor.continue();
-		}
-	};
-};
-
-const handleSearch = async (ev) => {
-	ev.preventDefault();
-	clearGalleryImages();
-	const searchInput = document.getElementById('search').value;
-	db.transaction(storeName, 'readonly').objectStore(storeName).openCursor().onsuccess = (event) => {
-		const cursor = event.target.result;
-		if (cursor) {
-			if (cursor.value[storeKey].toLowerCase().includes(searchInput.toLowerCase())) {
-				renderGalleryColumn(cursor);
-			}
-			cursor.continue();
-		}
-	};
-};
-
-// Form functions
 
 /**
  * @desc Gets the file from the input field and adds it to the IndexedDB
@@ -84,15 +54,35 @@ const handleSubmit = async (ev) => {
 	ev.preventDefault();
 	try {
 		const file = await getFileFromInput();
-		console.log(typeof (file));
-		const store = db.transaction(storeName, 'readwrite').objectStore(storeName);
-		store.add(file);
+		let transaction = db.transaction(storeName, 'readwrite');
+		transaction.oncomplete = (event) => {
+			console.log("looking at the data!");
+		}
+		transaction.onerror = (event) => {
+			console.log(event);
+		}
+		var store = transaction.objectStore(storeName);
+		var addRequest = store.add(file);
+		addRequest.onsuccess = (event) => {
+			console.log("file successfully added!");
+		}
 
-		store.transaction.oncomplete = () => {
-			clearGalleryImages();
-			renderAvailableImagesFromDb();
-			renderStorageQuotaInfo();
+		var readRequest = await store.get("foo.txt");
+
+		readRequest.onerror = (event) => {
+			console.log(event);
 		};
+		readRequest.onsuccess = async (event) => {
+			// Do something with the request.result!
+			var fileBlob = new Blob([readRequest.result], { type: "plain/txt" });
+			console.log(fileBlob);
+			var blobText = await fileBlob.text();
+			const reader = new FileReader();
+			reader.readAsText(fileBlob);
+			console.log(reader.result);
+		};
+
+
 	} catch (error) {
 		console.log(error);
 	}
@@ -112,13 +102,12 @@ async function getFileFromInput() {
 		}
 		const blob = await response.blob();
 		console.log(blob);
-		const file = new File([blob], "foo");
+		const file = new File([blob], "foo.txt", { type: "text/plain" });
 
 		return new Promise((resolve, reject) => {
-			console.log(typeof (file));
 			const reader = new FileReader();
 			reader.onload = (event) => {
-				document.getElementById('file').value = '';
+				document.getElementById('text').value = '';
 				resolve({
 					[storeKey]: file.name,
 					type: file.type,
@@ -140,68 +129,6 @@ async function getFileFromInput() {
 	return null;
 
 };
-
-// Methods for the image gallery
-
-/**
- * @desc Clears the gallery images from the DOM
- */
-const clearGalleryImages = () => {
-	document.getElementById('images').innerHTML = '';
-}
-
-/**
- * @desc Renders the gallery images in the DOM
- * @param {IDBCursorWithValue} cursor
- */
-const renderGalleryColumn = (cursor) => {
-	const galleryContainer = document.getElementById('images');
-	const imageBuffer = cursor.value.data;
-	const imageBlog = new Blob([imageBuffer]);
-
-	const col = document.createElement('div');
-	col.classList.add('col-12', 'col-md-6', 'col-lg-4');
-
-	const card = document.createElement('div');
-	card.classList.add('card');
-
-	const cardBody = document.createElement('div');
-	cardBody.classList.add('card-body');
-
-	const image = document.createElement('img');
-	image.src = URL.createObjectURL(imageBlog);
-	image.classList.add('card-img-top');
-
-	const title = document.createElement('h5');
-	title.classList.add('card-title');
-	title.innerText = cursor.value['type'];
-
-	const subTitle = document.createElement('h6');
-	subTitle.classList.add('card-subtitle');
-	subTitle.innerText = formatAsByteString(+cursor.value['size'])
-
-	const text = document.createElement('p');
-	text.classList.add('card-text');
-	text.innerText = cursor.value[storeKey];
-
-	const deleteButton = document.createElement('button');
-	deleteButton.classList.add('btn', 'btn-danger');
-	deleteButton.innerText = 'Delete';
-	deleteButton.addEventListener('click', () => {
-		console.log(typeof (cursor));
-		deleteImageFromIndexedDb(cursor.value[storeKey]);
-	})
-
-	cardBody.appendChild(title);
-	cardBody.appendChild(subTitle);
-	cardBody.appendChild(text)
-	cardBody.appendChild(deleteButton);
-	card.appendChild(image);
-	card.appendChild(cardBody);
-	col.appendChild(card);
-
-	galleryContainer.appendChild(col);
-}
 
 // Methods for Storage quota
 /**
@@ -252,7 +179,6 @@ window.addEventListener('load', async () => {
 	// const persistent = await navigator.storage.persist();
 	// if (persistent && requestPermission) {
 	db = await initIndexedDb('my-db', [{ name: storeName, keyPath: storeKey }]);
-	renderAvailableImagesFromDb();
 	await renderStorageQuotaInfo();
 	// } else {
 	// 	console.warn('Persistence is not supported');
