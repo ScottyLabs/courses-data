@@ -50,3 +50,7 @@ worker.postMessage("hello");
 worker.onmessage = (event) => {
   console.log(event.data);
 };
+
+export function get_data(): [string, string] {
+  return ["todo", "todo"];
+}
