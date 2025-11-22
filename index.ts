@@ -1,8 +1,13 @@
 import lunr, { Index } from "lunr";
+import { version } from "os";
 
 export class CourseCode {
   department: number = -1;
   number: number = -1;
+
+  toString(): string {
+    return `${this.department}${this.number}`;
+  }
 }
 
 export class Course {
@@ -16,7 +21,8 @@ export class Course {
 }
 
 export class SearchEngine {
-  private index: Index;
+  private data: Course[] = [];
+  private index: Index = null as unknown as Index;
 
   /**
    * Load a CMUCourses search engine.
@@ -29,8 +35,25 @@ export class SearchEngine {
    * @param fetch_from a `[version_endpoint, data_endpoint]`
    */
   constructor(fetch_from: [string, string]) {
-    let [version_endpoint, data_endpoint] = fetch_from;
-    this.index = lunr.Index.load({});
+    this.init(fetch_from);
+  }
+
+  private async init(fetch_from: [string, string]): Promise<void> {
+    try {
+      let [version_endpoint, data_endpoint] = fetch_from;
+
+      const [indexResponse, dataResponse] = await Promise.all([
+        fetch(version_endpoint),
+        fetch(data_endpoint),
+      ]);
+      
+      const serializedIndex = await indexResponse.json();
+      this.data = await dataResponse.json();
+      
+      this.index = lunr.Index.load(serializedIndex);
+    } catch (error) {
+      console.error('Error loading courses/search index:', error);
+    }
   }
 
   // mount exisintg
@@ -40,7 +63,27 @@ export class SearchEngine {
   // useeffect
 
   query(s: string): Course[] {
-    return [];
+    if (!this.index || !s.trim()) {
+      return [];
+    }
+    
+    try {
+      const results = this.index.search(s);
+
+      const courses = results.map(result => {
+        for (const c in this.data) {
+          if (this.data[c].course_code.toString() === result.ref) {
+            return this.data[c];
+          }
+        }
+        throw new Error(`Course with ref ${result.ref} not found in data.`);
+      }).slice(0, 10);
+      
+      return courses;
+    } catch (error) {
+      console.error('Search error:', error);
+      return [];
+    }
   }
 }
 
