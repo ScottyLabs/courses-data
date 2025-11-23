@@ -2,7 +2,7 @@
   "name": "courses-data",
   "version": "1.0.0",
   "description": "An implementation of a search engine using Lunr.js which is compressed and loaded onto the client side, for CMUCourses Data Layer",
-  "main": "index.js",
+  "main": "index.ts",
   "type": "module",
   "scripts": {
     "build": "bun run build-index.js",
