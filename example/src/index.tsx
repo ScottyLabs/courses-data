@@ -1,31 +1,21 @@
 import { serve } from "bun";
 import index from "./index.html";
 
+// these two static files appear after running `bun run build-index.js`
+import lunr_index from "../../lunr-index.json";
+import courses_data from "../../courses-data.json";
+
 const server = serve({
   routes: {
     // Serve index.html for all unmatched routes.
     "/*": index,
 
-    "/api/hello": {
-      async GET(req) {
-        return Response.json({
-          message: "Hello, world!",
-          method: "GET",
-        });
-      },
-      async PUT(req) {
-        return Response.json({
-          message: "Hello, world!",
-          method: "PUT",
-        });
-      },
+    "/api/lunr-index": async () => {
+      return Response.json(lunr_index);
     },
 
-    "/api/hello/:name": async req => {
-      const name = req.params.name;
-      return Response.json({
-        message: `Hello, ${name}!`,
-      });
+    "/api/courses-data": async () => {
+      return Response.json(courses_data);
     },
   },
 
