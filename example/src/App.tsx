@@ -18,7 +18,6 @@ export function App() {
           </p>
         );
       })}
-      <p>{response.at(0)?.name}</p>
     </div>
   );
 }

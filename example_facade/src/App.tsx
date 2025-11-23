@@ -12,15 +12,19 @@ export function App() {
 
   return (
     <div className="app">
-      {/* <input onChange={(e) => setResponse(search.query(e.target.value))} />
+      {/* 
+      The pedagogical example in the `example` folder basically
+      just runs the following code. This massive example is a facade
+      around basically the exact same code.
+      
+      <input onChange={(e) => setResponse(search.query(e.target.value))} />
       {response.slice(0, 10).map((course) => {
         return (
           <p>
             {course.id}: {course.name} | {course.desc}
           </p>
         );
-      })}
-      <p>{response.at(0)?.name}</p> */}
+      })} */}
       <div id="__next">
       <div className="accent-blue-600 flex flex-col md:h-screen min-h-screen">
         <div
